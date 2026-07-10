@@ -9,6 +9,12 @@ Built with a LangGraph ReAct agent + OpenAI and a terminal-first UX.
 
 ## ✨ Features
 
+- **🧑‍🏫 Master-Teacher review loop (the cherry on top)** — after drafting, a
+  second LLM acting as a senior instructional coach scores every plan on a
+  rubric (age-fit, **safety**, engagement, clarity), flags concrete issues, and
+  auto-refines the plan before you see it. A small *generate → critique → refine*
+  agentic loop that reliably catches things like choking hazards. Toggle with
+  `/review on|off`.
 - **Conversational** — multi-turn memory, so you can refine a plan ("make it
   shorter", "add a movement break") without repeating yourself.
 - **Web-powered** — a `web_search` tool (Tavily) pulls in real picture books,
@@ -79,6 +85,7 @@ teacher › /save Butterfly Life Cycle
 |---|---|
 | `/help` | Show help and example prompts |
 | `/save [title]` | Save the last plan to `lesson_plans/` |
+| `/review [on\|off]` | Toggle the master-teacher review loop |
 | `/new` | Start a fresh conversation (clears memory) |
 | `/quit` | Exit |
 
@@ -90,9 +97,13 @@ teacher › /save Butterfly Life Cycle
 2. **Tools:**
    - `web_search` — Tavily search for real, current classroom resources.
    - `save_lesson_plan` — writes a Markdown file (never overwrites).
-3. **Memory:** a `MemorySaver` checkpointer keyed by `thread_id` makes it a true
+3. **Master-teacher review loop:** once a plan is drafted, a separate
+   `LessonReviewer` LLM (structured output) scores it on a rubric, lists issues,
+   and returns an improved version — a reflection loop that raises quality and
+   catches safety problems. See `src/reviewer.py`.
+4. **Memory:** a `MemorySaver` checkpointer keyed by `thread_id` makes it a true
    chatbot — refinements build on the previous turn.
-4. **Prompt engineering:** a detailed system prompt encodes developmental
+5. **Prompt engineering:** a detailed system prompt encodes developmental
    appropriateness (ages 4–6), a consistent 10-section plan structure, safety
    awareness, and a bias toward searching for real resources over inventing them.
 
@@ -110,6 +121,12 @@ teacher › /save Butterfly Life Cycle
    │ web_    │   │ save_      │
    │ search  │   │ lesson_plan│
    └─────────┘   └────────────┘
+               │ draft
+        ┌──────▼───────────┐
+        │ 🧑‍🏫 Master-Teacher │  rubric scores + auto-refine
+        │  Reviewer         │  (src/reviewer.py)
+        └──────┬───────────┘
+               ▼ polished plan
 ```
 
 ## 🔧 Design notes & trade-offs
@@ -122,11 +139,18 @@ teacher › /save Butterfly Life Cycle
 - **In-memory conversation:** memory is per-process (not persisted across runs) —
   intentional simplicity for a prototype.
 
+- **Review loop trade-off:** the reviewer adds a second LLM call per plan
+  (~2× latency/cost on planning turns). It's best-effort — if it fails, the
+  draft is kept — and can be switched off with `/review off` or
+  `REVIEW_ENABLED=false`. Note the *draft* (not the revised plan) is what's kept
+  in conversation memory, so follow-up edits build on the pre-review version.
+
 ### If I had one more day
+- Feed the revised plan back into conversation memory so edits build on it.
 - Persist conversations and a lesson-plan library across sessions.
 - Add a curriculum-standards lookup tool (e.g. state early-learning standards).
-- Stream tokens for a typewriter effect; export to PDF/Google Docs.
-- Add evals over a set of teacher prompts.
+- Printable/PDF export and read-aloud (TTS) of songs and stories.
+- Add evals over a set of teacher prompts (incl. the reviewer's rubric scores).
 
 ## 📄 License
 

@@ -16,6 +16,7 @@ from langgraph.graph import END, StateGraph
 from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode
 
+from src.reviewer import LessonReviewer
 from src.tools.lesson_file import create_lesson_file_tool
 from src.tools.websearch import create_web_search_tool
 
@@ -101,6 +102,11 @@ class LessonPlannerAgent:
         self.llm = ChatOpenAI(**llm_kwargs).bind_tools(self.tools)
         self.graph = self._build_graph()
 
+        # 'Cherry on top': a master-teacher review loop that critiques and
+        # refines each drafted plan. Toggle with REVIEW_ENABLED=false.
+        self.reviewer = LessonReviewer(openai_api_key, model_name)
+        self.review_enabled = os.environ.get("REVIEW_ENABLED", "true").lower() != "false"
+
     def _build_graph(self):
         workflow = StateGraph(AgentState)
         workflow.add_node("agent", self._call_model)
@@ -132,11 +138,19 @@ class LessonPlannerAgent:
             return "continue"
         return "end"
 
+    @staticmethod
+    def _looks_like_plan(text: str) -> bool:
+        """Heuristic: only review substantial plans, not short chat replies."""
+        headings = sum(1 for line in text.splitlines() if line.lstrip().startswith("#"))
+        return headings >= 3
+
     def stream(self, message: str, thread_id: str = "default") -> Iterator[Dict[str, Any]]:
         """Stream a turn as a series of events.
 
         Yields dicts of:
           {"type": "tool_call", "name": str, "args": dict}
+          {"type": "reviewing"}
+          {"type": "review", "scores": dict, "issues": list, "summary": str}
           {"type": "final", "content": str}
           {"type": "error", "error": str}
         """
@@ -159,6 +173,23 @@ class LessonPlannerAgent:
                                 }
                         elif node == "agent" and isinstance(msg, AIMessage) and msg.content:
                             final_content = msg.content
+
+            # Master-teacher review loop: critique + refine substantial plans.
+            if self.review_enabled and self._looks_like_plan(final_content):
+                yield {"type": "reviewing"}
+                try:
+                    review = self.reviewer.review(message, final_content)
+                    yield {
+                        "type": "review",
+                        "scores": review.scores.model_dump(),
+                        "issues": review.issues,
+                        "summary": review.summary,
+                    }
+                    if review.revised_plan and review.revised_plan.strip():
+                        final_content = review.revised_plan
+                except Exception as e:  # noqa: BLE001 - review is best-effort
+                    logger.warning("Reviewer failed, keeping draft: %s", e)
+
             yield {"type": "final", "content": final_content}
         except Exception as e:  # noqa: BLE001
             logger.error("Error during stream: %s", e)

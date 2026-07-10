@@ -40,6 +40,7 @@ BANNER = r"""
 HELP_TEXT = """[bold]Commands[/bold]
   [cyan]/help[/cyan]            Show this help
   [cyan]/save[/cyan] [dim][title][/dim]   Save the last plan to a Markdown file
+  [cyan]/review[/cyan] [dim]on|off[/dim]  Toggle the master-teacher review loop
   [cyan]/new[/cyan]             Start a fresh conversation (clears memory)
   [cyan]/quit[/cyan], [cyan]/exit[/cyan]  Leave the app
 
@@ -82,9 +83,43 @@ def _render_plan(markdown_text: str) -> None:
     )
 
 
+def _render_review(review: dict) -> None:
+    """Show the master-teacher rubric scores, issues, and summary."""
+    scores = review.get("scores", {})
+    labels = [
+        ("age_appropriateness", "Age fit"),
+        ("safety", "Safety"),
+        ("engagement", "Engagement"),
+        ("clarity", "Clarity"),
+    ]
+    lines = []
+    for key, label in labels:
+        s = int(scores.get(key, 0))
+        color = "green" if s >= 4 else "yellow" if s == 3 else "red"
+        stars = "★" * s + "☆" * (5 - s)
+        lines.append(f"[{color}]{stars}[/{color}]  {label}")
+    body = "\n".join(lines)
+
+    issues = review.get("issues") or []
+    if issues:
+        body += "\n\n[bold]Notes:[/bold]\n" + "\n".join(f"  [yellow]⚠[/yellow] {i}" for i in issues)
+    if review.get("summary"):
+        body += f"\n\n[dim]✎ {review['summary']}[/dim]"
+
+    console.print(
+        Panel(
+            body,
+            title="[bold magenta]🧑‍🏫 Master-Teacher Review[/bold magenta]",
+            border_style="magenta",
+            padding=(1, 2),
+        )
+    )
+
+
 def _run_turn(agent, message: str, thread_id: str) -> str:
     """Drive one agent turn with a live status, return the final text."""
     final = ""
+    review = None
     with console.status("[bold yellow]Thinking…[/bold yellow]", spinner="dots") as status:
         for event in agent.stream(message, thread_id):
             etype = event["type"]
@@ -98,6 +133,11 @@ def _run_turn(agent, message: str, thread_id: str) -> str:
                 if detail:
                     line += f" [dim]· {detail}[/dim]"
                 console.print(line)
+            elif etype == "reviewing":
+                status.update("[bold magenta]🧑‍🏫 Master teacher reviewing the plan…[/bold magenta]")
+                console.print("[magenta]🧑‍🏫 master-teacher review[/magenta]")
+            elif etype == "review":
+                review = event
             elif etype == "final":
                 final = event["content"]
             elif etype == "error":
@@ -109,6 +149,8 @@ def _run_turn(agent, message: str, thread_id: str) -> str:
                     )
                 )
                 return ""
+    if review:
+        _render_review(review)
     return final
 
 
@@ -187,6 +229,15 @@ def main() -> None:
             continue
         if user_input.lower().startswith("/save"):
             _handle_save(user_input[len("/save"):], last_plan)
+            continue
+        if user_input.lower().startswith("/review"):
+            arg = user_input[len("/review"):].strip().lower()
+            if arg in ("on", "off"):
+                agent.review_enabled = arg == "on"
+            else:
+                agent.review_enabled = not agent.review_enabled
+            state = "[green]on[/green]" if agent.review_enabled else "[yellow]off[/yellow]"
+            console.print(f"🧑‍🏫 Master-teacher review is now {state}.")
             continue
         if user_input.startswith("/"):
             console.print(f"[yellow]Unknown command: {user_input}. Try /help.[/yellow]")
