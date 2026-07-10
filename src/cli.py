@@ -16,7 +16,7 @@ from rich.prompt import Prompt
 from rich.rule import Rule
 from rich.text import Text
 
-from src.agent import DEFAULT_MODEL, create_agent
+from src.agent import create_agent, resolve_model
 from src.tools.lesson_file import save_lesson_plan_to_file
 
 # Keep library logging out of the pretty UI unless the user opts in.
@@ -61,11 +61,11 @@ def _fatal(message: str) -> None:
     sys.exit(1)
 
 
-def _print_banner() -> None:
+def _print_banner(model: str) -> None:
     console.print(Align.center(Text(BANNER, style="bold magenta")))
     console.print(
         Align.center(
-            Text(f"model: {DEFAULT_MODEL}   •   type /help for commands", style="dim")
+            Text(f"model: {model}   •   type /help for commands", style="dim")
         )
     )
     console.print()
@@ -147,7 +147,7 @@ def main() -> None:
     except Exception as e:  # noqa: BLE001
         _fatal(f"Failed to initialize the agent:\n{e}")
 
-    _print_banner()
+    _print_banner(resolve_model())
     console.print(
         Panel(
             "Hi! I'm your kindergarten lesson-planning assistant. "

@@ -21,9 +21,14 @@ from src.tools.websearch import create_web_search_tool
 
 logger = logging.getLogger(__name__)
 
-# Frontier model by default. gpt-5* models only accept the default temperature,
+# Frontier model fallback. gpt-5* models only accept the default temperature,
 # so we omit the temperature argument for those to avoid an API error.
-DEFAULT_MODEL = os.environ.get("OPENAI_MODEL", "gpt-4.1")
+DEFAULT_MODEL = "gpt-4.1"
+
+
+def resolve_model(model_name: str | None = None) -> str:
+    """Resolve the model name at call time (after .env is loaded)."""
+    return model_name or os.environ.get("OPENAI_MODEL") or DEFAULT_MODEL
 
 SYSTEM_PROMPT = """You are an expert early-childhood educator who designs \
 warm, playful, and developmentally appropriate lesson plans for KINDERGARTEN \
@@ -74,9 +79,10 @@ class LessonPlannerAgent:
         self,
         openai_api_key: str,
         tavily_api_key: str,
-        model_name: str = DEFAULT_MODEL,
+        model_name: str | None = None,
         temperature: float = 0.7,
     ):
+        model_name = resolve_model(model_name)
         logger.info("Initializing LessonPlannerAgent with model=%s", model_name)
 
         self.tools = [
@@ -171,7 +177,7 @@ class LessonPlannerAgent:
 
 
 def create_agent(
-    openai_api_key: str, tavily_api_key: str, model_name: str = DEFAULT_MODEL
+    openai_api_key: str, tavily_api_key: str, model_name: str | None = None
 ) -> LessonPlannerAgent:
     """Create and return a lesson-planner agent."""
     return LessonPlannerAgent(
