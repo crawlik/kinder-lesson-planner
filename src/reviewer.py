@@ -1,10 +1,10 @@
-"""Master-Teacher review loop — the 'cherry on top'.
+"""LLM-as-a-judge review loop.
 
-After the planner drafts a lesson, a second LLM plays a senior early-childhood
-instructional coach: it scores the draft against a rubric, flags concrete
-issues (especially safety), and returns an improved version. This is a small
-agentic reflection loop — generate, critique, refine — that raises quality and
-catches problems (like choking hazards) the first pass may miss.
+After the planner drafts a lesson, a second LLM is used as a judge playing the
+role of a senior master teacher: it scores the draft against a rubric, flags
+concrete issues (especially safety), and returns an improved version. This is a
+small agentic reflection loop — generate, critique, refine — that raises quality
+and catches problems (like choking hazards) the first pass may miss.
 """
 import logging
 import os

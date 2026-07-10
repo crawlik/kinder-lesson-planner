@@ -102,8 +102,8 @@ class LessonPlannerAgent:
         self.llm = ChatOpenAI(**llm_kwargs).bind_tools(self.tools)
         self.graph = self._build_graph()
 
-        # 'Cherry on top': a master-teacher review loop that critiques and
-        # refines each drafted plan. Toggle with REVIEW_ENABLED=false.
+        # LLM-as-a-judge review loop: a second LLM plays a master teacher to
+        # critique and refine each drafted plan. Toggle with REVIEW_ENABLED=false.
         self.reviewer = LessonReviewer(openai_api_key, model_name)
         self.review_enabled = os.environ.get("REVIEW_ENABLED", "true").lower() != "false"
 

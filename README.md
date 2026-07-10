@@ -9,8 +9,8 @@ Built with a LangGraph ReAct agent + OpenAI and a terminal-first UX.
 
 ## ✨ Features
 
-- **🧑‍🏫 Master-Teacher review loop (the cherry on top)** — after drafting, a
-  second LLM acting as a senior instructional coach scores every plan on a
+- **🧑‍🏫 LLM-as-a-judge review loop** — after drafting, a second LLM acts as a
+  judge playing the role of a senior master teacher: it scores every plan on a
   rubric (age-fit, **safety**, engagement, clarity), flags concrete issues, and
   auto-refines the plan before you see it. A small *generate → critique → refine*
   agentic loop that reliably catches things like choking hazards. Toggle with
