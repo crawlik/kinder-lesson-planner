@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.env
+.venv
+venv/
+dist/
+build/
+.DS_Store
+*.log
+# Generated lesson plans (teacher output)
+lesson_plans/
+uv.lock
