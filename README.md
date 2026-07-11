@@ -7,6 +7,10 @@ uses **web search** to ground its ideas in real books/songs/activities, and can
 
 Built with a LangGraph ReAct agent + OpenAI and a terminal-first UX.
 
+<p align="center">
+  <img src="docs/demo.gif" alt="Kinder Lesson Planner — terminal demo" width="820">
+</p>
+
 ## ✨ Features
 
 - **👩‍🏫 LLM-as-a-judge review loop** — after drafting, a second LLM acts as a
