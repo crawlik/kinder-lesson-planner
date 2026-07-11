@@ -65,10 +65,16 @@
       "gridPos": { "h": 9, "w": 12, "x": 12, "y": 9 },
       "targets": [
         {
-          "refId": "A",
+          "refId": "tokens",
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "sum by (__name__) ({__name__=~\"gen_ai.*\"})",
-          "legendFormat": "{{__name__}}"
+          "expr": "sum(increase(gen_ai_client_token_usage_sum[$__rate_interval]))",
+          "legendFormat": "tokens"
+        },
+        {
+          "refId": "cost",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum(increase(gen_ai_usage_cost_USD_sum[$__rate_interval]))",
+          "legendFormat": "cost (USD)"
         }
       ]
     }

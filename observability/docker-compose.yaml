@@ -9,7 +9,8 @@
 # Point the app at it:  OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
 services:
   otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.115.0
+    restart: unless-stopped
+    image: otel/opentelemetry-collector-contrib:0.156.0
     command: ["--config=/etc/otelcol/config.yaml"]
     volumes:
       - ./otel-collector-config.yaml:/etc/otelcol/config.yaml
@@ -21,7 +22,8 @@ services:
       - tempo
 
   tempo:
-    image: grafana/tempo:2.6.1
+    restart: unless-stopped
+    image: grafana/tempo:2.10.7
     command: ["-config.file=/etc/tempo.yaml"]
     volumes:
       - ./tempo.yaml:/etc/tempo.yaml
@@ -29,7 +31,8 @@ services:
       - "3200:3200"   # Tempo API / query
 
   prometheus:
-    image: prom/prometheus:v2.55.1
+    restart: unless-stopped
+    image: prom/prometheus:v3.13.1
     command:
       - --config.file=/etc/prometheus/prometheus.yaml
       - --web.enable-remote-write-receiver
@@ -40,7 +43,8 @@ services:
       - "9090:9090"
 
   grafana:
-    image: grafana/grafana:11.4.0
+    restart: unless-stopped
+    image: grafana/grafana:12.3.8
     environment:
       - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
