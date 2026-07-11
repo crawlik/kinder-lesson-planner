@@ -1,7 +1,7 @@
 # 🍎 Kinder Lesson Planner
 
 An **agentic LLM assistant** that generates kindergarten lesson plans from a
-teacher's plain-English request. It runs as a **simple, colorful terminal app**,
+teacher's natural-English request. It runs as a **simple, colorful terminal app**,
 uses **web search** to ground its ideas in real books/songs/activities, and can
 **save plans to Markdown** files.
 
