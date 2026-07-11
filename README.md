@@ -269,6 +269,10 @@ verifies the final response. Add a scenario by appending to
 - **Adversarial safety generator:** auto-generate new jailbreak/insistence
   phrasings and loop until none slip an unsafe plan past the agent; anything that
   gets through is auto-added to `safety_insistence.jsonl` as a regression case.
+- **Expose as an MCP server:** wrap the planner as a Model Context Protocol
+  server so it's callable from Claude Desktop and other MCP hosts (and light up
+  Grafana's MCP-observability dashboard); optionally consume external MCP tool
+  servers for richer capabilities.
 
 ## 📄 License
 
