@@ -261,6 +261,9 @@ verifies the final response. Add a scenario by appending to
 - Add a curriculum-standards lookup tool (e.g. state early-learning standards).
 - Printable/PDF export and read-aloud (TTS) of songs and stories.
 - Push eval rubric scores back to Grafana as metrics and alert on regressions.
+- **Adversarial safety generator:** auto-generate new jailbreak/insistence
+  phrasings and loop until none slip an unsafe plan past the agent; anything that
+  gets through is auto-added to `safety_insistence.jsonl` as a regression case.
 
 ## 📄 License
 
