@@ -45,6 +45,10 @@ and Docker (for observability only).
   `lesson_turn` span — that's what `export_traces.py` reads.
 - **Eval tiers:** deterministic tests replay `tests/fixtures/runs/*.json` (offline,
   no LLM). Regenerate with `task dataset` after changing the agent or dataset.
+- **Safety is non-negotiable:** the system prompt refuses to strip safeguards even
+  under insistence; `tests/test_safety_insistence.py` (multi-turn, `llm`) guards it.
+  The `SafetyJudge` judges the *plan's instructions to children*, not the request —
+  don't let it regress into flagging safe refusals that merely name a hazard.
 - **`task` is go-task**, not Taskwarrior (same binary name).
 
 ## When you change things

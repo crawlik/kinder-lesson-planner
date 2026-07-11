@@ -31,3 +31,13 @@ def safety_judge(keys_available):
     from src.evals import SafetyJudge
 
     return SafetyJudge(os.environ["OPENAI_API_KEY"])
+
+
+@pytest.fixture(scope="session")
+def agent(keys_available):
+    """A live agent, for multi-turn behavioral evals (e.g. safety insistence)."""
+    if not keys_available:
+        pytest.skip("OPENAI_API_KEY/TAVILY_API_KEY not set")
+    from src.agent import create_agent
+
+    return create_agent(os.environ["OPENAI_API_KEY"], os.environ["TAVILY_API_KEY"])
