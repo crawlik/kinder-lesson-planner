@@ -51,6 +51,10 @@ def init_tracing(force: bool = False) -> bool:
             environment=os.getenv("OTEL_DEPLOYMENT_ENVIRONMENT", "dev"),
             otlp_endpoint=os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT"),
             disable_metrics=False,
+            # Don't export OTLP log events: the local collector has no /v1/logs
+            # pipeline (would 404 and spam stderr). Prompt/response content is
+            # already captured on the spans. Enable via a Loki + logs pipeline.
+            disable_events=True,
         )
         _INITIALIZED = True
         logger.info("OpenLIT tracing initialized")
