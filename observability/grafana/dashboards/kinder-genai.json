@@ -1,0 +1,76 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "graphTooltip": 0,
+  "title": "Kinder Lesson Planner — GenAI Observability",
+  "uid": "kinder-genai",
+  "tags": ["genai", "openlit", "kinder-lesson-planner"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "time": { "from": "now-1h", "to": "now" },
+  "templating": { "list": [] },
+  "panels": [
+    {
+      "id": 1,
+      "type": "table",
+      "title": "Recent traces (agent turns, LLM calls, tools)",
+      "datasource": { "type": "tempo", "uid": "tempo" },
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "tempo", "uid": "tempo" },
+          "queryType": "traceql",
+          "query": "{ resource.service.name = \"kinder-lesson-planner\" }",
+          "tableType": "traces",
+          "limit": 50
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Master-teacher rubric — avg score over time (from traces)",
+      "description": "TraceQL metrics over the evaluate_lesson span attributes.",
+      "datasource": { "type": "tempo", "uid": "tempo" },
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 9 },
+      "fieldConfig": {
+        "defaults": { "min": 0, "max": 5, "unit": "short" },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "safety",
+          "datasource": { "type": "tempo", "uid": "tempo" },
+          "queryType": "traceql",
+          "query": "{ name = \"evaluate_lesson\" } | avg_over_time(span.gen_ai.evaluation.safety.score)",
+          "metricsQueryType": "range"
+        },
+        {
+          "refId": "age",
+          "datasource": { "type": "tempo", "uid": "tempo" },
+          "queryType": "traceql",
+          "query": "{ name = \"evaluate_lesson\" } | avg_over_time(span.gen_ai.evaluation.age_appropriateness.score)",
+          "metricsQueryType": "range"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "GenAI metrics (OpenLIT → Prometheus)",
+      "description": "Token usage, request duration, and cost emitted by OpenLIT.",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 9 },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum by (__name__) ({__name__=~\"gen_ai.*\"})",
+          "legendFormat": "{{__name__}}"
+        }
+      ]
+    }
+  ]
+}

@@ -17,6 +17,7 @@ from rich.rule import Rule
 from rich.text import Text
 
 from src.agent import create_agent, resolve_model
+from src.observability import init_tracing
 from src.tools.lesson_file import save_lesson_plan_to_file
 
 # Keep library logging out of the pretty UI unless the user opts in.
@@ -169,9 +170,12 @@ def _handle_save(arg: str, last_plan: str) -> None:
 def main() -> None:
     load_dotenv()
 
-    # Optional LangSmith tracing, mirroring the reference project.
-    if os.getenv("LANGCHAIN_TRACING_V2", "").lower() == "true":
-        console.print("[dim]LangSmith tracing enabled[/dim]")
+    # Grafana AI Observability via OpenLIT — must run before the agent so the
+    # LangChain/OpenAI/HTTP libraries are instrumented before first use.
+    if init_tracing():
+        console.print(
+            f"[dim]📡 Tracing → {os.getenv('OTEL_EXPORTER_OTLP_ENDPOINT', 'OpenLIT default')}[/dim]"
+        )
 
     missing = [v for v in REQUIRED_VARS if not os.getenv(v)]
     if missing:

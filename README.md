@@ -23,6 +23,11 @@ Built with a LangGraph ReAct agent + OpenAI and a terminal-first UX.
   plans to `lesson_plans/*.md`.
 - **Colorful TUI** — [Rich](https://github.com/Textualize/rich)-rendered
   Markdown, live tool activity, and spinners.
+- **📡 Grafana AI Observability** — one-line [OpenLIT](https://openlit.io)
+  instrumentation exports OpenTelemetry GenAI traces (agent turns, LLM calls,
+  tool calls, tokens, cost) plus the master-teacher rubric scores to a local
+  **Tempo + Prometheus + Grafana** stack. Fully optional. See
+  [`observability/`](observability/).
 - **Robust** — env validation, graceful error panels, and safe model/temperature
   handling (auto-adapts for `gpt-5*`/`o*` models).
 
@@ -33,10 +38,13 @@ kinder-lesson-planner/
 ├── main.py                  # entry point
 ├── src/
 │   ├── agent.py             # LangGraph ReAct agent (OpenAI + tools + memory)
+│   ├── reviewer.py          # LLM-as-a-judge master-teacher review loop
+│   ├── observability.py     # OpenLIT / OpenTelemetry tracing wiring
 │   ├── cli.py               # colorful Rich terminal app (REPL)
 │   └── tools/
 │       ├── websearch.py     # Tavily web search tool
 │       └── lesson_file.py   # save-lesson-plan tool + helper
+├── observability/           # local Grafana stack (Tempo + Prometheus + Grafana)
 ├── pyproject.toml
 ├── .env.example
 └── README.md
@@ -129,6 +137,32 @@ teacher › /save Butterfly Life Cycle
                ▼ polished plan
 ```
 
+## 📡 Observability (Grafana AI Observability)
+
+Optional end-to-end tracing via **OpenLIT** (OpenTelemetry-native), following the
+OTel **GenAI semantic conventions**. Spin up the local stack and every turn is
+traced:
+
+```bash
+docker compose -f observability/docker-compose.yaml up -d
+export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318   # (default in .env.example)
+uv run python main.py
+# Grafana → http://localhost:3000 → Explore → Tempo:
+#   { resource.service.name = "kinder-lesson-planner" }
+```
+
+Each turn emits an `invoke_agent → chat → execute_tool` span tree with token
+counts and cost, plus a custom `evaluate_lesson` span carrying the rubric scores
+(`gen_ai.evaluation.safety.score`, …) so plan quality is chartable in Grafana via
+TraceQL metrics. Tracing is a no-op unless enabled, so the app runs fine without
+it. Grafana Cloud works too — just set the OTLP gateway + credentials. Details in
+[`observability/README.md`](observability/README.md).
+
+> **Next up (planned):** trace-seeded evaluation — curate datasets from real
+> Tempo traces (TraceQL) and run them as pytest unit tests, scored by both the
+> `LessonReviewer` rubric and OpenLIT's built-in evals, with results pushed back
+> to Grafana to alert on regressions.
+
 ## 🔧 Design notes & trade-offs
 
 - **Model choice:** defaults to a frontier model (`gpt-4.1`) for reliable tool
@@ -139,6 +173,10 @@ teacher › /save Butterfly Life Cycle
 - **In-memory conversation:** memory is per-process (not persisted across runs) —
   intentional simplicity for a prototype.
 
+- **Observability via OpenLIT:** chosen for one-line instrumentation, native
+  Grafana dashboards, and built-in evals; the trade-off is that the OTel GenAI
+  semantic conventions are still *experimental*. Tracing is fully optional and
+  never breaks the app if the collector is down.
 - **Review loop trade-off:** the reviewer adds a second LLM call per plan
   (~2× latency/cost on planning turns). It's best-effort — if it fails, the
   draft is kept — and can be switched off with `/review off` or

@@ -1,0 +1,56 @@
+# Local Grafana AI Observability stack for kinder-lesson-planner.
+#
+#   app (OpenLIT) --OTLP--> otel-collector --> Tempo (traces)
+#                                         \--> Prometheus (metrics)
+#                                              Grafana visualizes both
+#
+# Start:  docker compose -f observability/docker-compose.yaml up -d
+# Grafana: http://localhost:3000  (anonymous admin, no login)
+# Point the app at it:  OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
+services:
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.115.0
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otelcol/config.yaml
+    ports:
+      - "4318:4318"   # OTLP HTTP  (the app exports here)
+      - "4317:4317"   # OTLP gRPC
+      - "8889:8889"   # Prometheus scrape endpoint (collector -> Prometheus)
+    depends_on:
+      - tempo
+
+  tempo:
+    image: grafana/tempo:2.6.1
+    command: ["-config.file=/etc/tempo.yaml"]
+    volumes:
+      - ./tempo.yaml:/etc/tempo.yaml
+    ports:
+      - "3200:3200"   # Tempo API / query
+
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    command:
+      - --config.file=/etc/prometheus/prometheus.yaml
+      - --web.enable-remote-write-receiver
+      - --enable-feature=exemplar-storage
+    volumes:
+      - ./prometheus.yaml:/etc/prometheus/prometheus.yaml
+    ports:
+      - "9090:9090"
+
+  grafana:
+    image: grafana/grafana:11.4.0
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
+      - GF_FEATURE_TOGGLES_ENABLE=traceqlEditor traceQLStreaming
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+    ports:
+      - "3000:3000"
+    depends_on:
+      - tempo
+      - prometheus

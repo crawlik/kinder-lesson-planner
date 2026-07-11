@@ -14,6 +14,8 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field
 
+from src.observability import get_tracer, record_review_scores
+
 logger = logging.getLogger(__name__)
 
 REVIEWER_SYSTEM_PROMPT = """You are a master kindergarten teacher and \
@@ -74,7 +76,11 @@ class LessonReviewer:
         self.llm = ChatOpenAI(**llm_kwargs).with_structured_output(LessonReview)
 
     def review(self, teacher_request: str, plan_text: str) -> LessonReview:
-        """Review a draft plan and return scores + an improved version."""
+        """Review a draft plan and return scores + an improved version.
+
+        Wrapped in an `evaluate_lesson` span so the rubric scores show up on
+        the trace (and can be aggregated into Grafana via TraceQL metrics).
+        """
         messages = [
             SystemMessage(content=REVIEWER_SYSTEM_PROMPT),
             HumanMessage(
@@ -84,4 +90,12 @@ class LessonReviewer:
                 )
             ),
         ]
-        return self.llm.invoke(messages)
+        with get_tracer().start_as_current_span("evaluate_lesson") as span:
+            review = self.llm.invoke(messages)
+            record_review_scores(
+                span,
+                review.scores.model_dump(),
+                issue_count=len(review.issues),
+                revised=bool(review.revised_plan and review.revised_plan.strip()),
+            )
+            return review
