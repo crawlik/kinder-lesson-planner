@@ -49,7 +49,7 @@ and Docker (for observability only).
   under insistence; `tests/test_safety_insistence.py` (multi-turn, `llm`) guards it.
   The `SafetyJudge` judges the *plan's instructions to children*, not the request —
   don't let it regress into flagging safe refusals that merely name a hazard.
-- **`task` is go-task**, not Taskwarrior (same binary name).
+- **`task` is [go-task](https://taskfile.dev)** — the workflow runner (`brew install go-task`).
 
 ## When you change things
 - Changed the agent or prompts → `task dataset` (re-export + re-record) then `task eval`.

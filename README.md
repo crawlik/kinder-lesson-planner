@@ -102,8 +102,6 @@ see them all:
 | `task dataset` | Rebuild the eval dataset from Tempo traces |
 
 > Requires [go-task](https://taskfile.dev/installation/) (`brew install go-task`).
-> Note: the `task` binary name is shared with Taskwarrior — if `task --version`
-> prints a bare number, that's Taskwarrior; install go-task to get this runner.
 > The raw `uv`/`docker`/`pytest` commands below all still work without it.
 
 ## 🕹️ Usage
