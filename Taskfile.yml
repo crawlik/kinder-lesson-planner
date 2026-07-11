@@ -1,0 +1,72 @@
+# Task runner for kinder-lesson-planner — https://taskfile.dev
+# One blessed entry point per workflow. Run `task` (or `task --list`) to see all.
+version: "3"
+
+dotenv: [".env"]
+
+vars:
+  COMPOSE: docker compose -f observability/docker-compose.yaml
+  DATASET: tests/datasets/lessons.jsonl
+
+tasks:
+  default:
+    desc: List available tasks
+    cmds: [task --list]
+    silent: true
+
+  setup:
+    desc: Install all dependencies (incl. dev)
+    cmds: [uv sync]
+    sources: ["pyproject.toml", "uv.lock"]
+
+  run:
+    desc: Launch the colorful terminal app
+    deps: [setup]
+    cmds: [uv run python main.py]
+    interactive: true
+
+  # ---- Observability (local Grafana stack) ----
+  obs:up:
+    desc: Start Tempo + Prometheus + Grafana
+    cmds:
+      - "{{.COMPOSE}} up -d"
+      - 'echo "Grafana → http://localhost:3000  (Explore → Tempo)"'
+
+  obs:down:
+    desc: Stop the observability stack
+    cmds: ["{{.COMPOSE}} down"]
+
+  obs:logs:
+    desc: Tail the stack logs
+    cmds: ["{{.COMPOSE}} logs -f"]
+
+  # ---- Evaluation ----
+  eval:
+    desc: Deterministic eval gate (offline, fast — the PR gate)
+    deps: [setup]
+    cmds: ['uv run pytest -m "not llm"']
+
+  eval:llm:
+    desc: LLM-as-a-judge eval gate (needs API keys)
+    deps: [setup]
+    cmds: ["uv run pytest -m llm"]
+
+  eval:all:
+    desc: Run the full eval suite
+    deps: [setup]
+    cmds: [uv run pytest]
+
+  # ---- Dataset curation (needs the stack up with fresh traces) ----
+  dataset:export:
+    desc: Curate the eval dataset from real Tempo traces
+    cmds: ["uv run python scripts/export_traces.py > {{.DATASET}}"]
+
+  dataset:record:
+    desc: Record agent outputs so the deterministic gate runs offline
+    cmds: [uv run python scripts/record_runs.py]
+
+  dataset:
+    desc: Rebuild the dataset (export from traces, then record runs)
+    cmds:
+      - task: dataset:export
+      - task: dataset:record

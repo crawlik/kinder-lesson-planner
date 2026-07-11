@@ -13,8 +13,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
-      - run: uv sync
-      - run: uv run pytest -m "not llm"
+      - uses: go-task/setup-task@v1
+      - run: task eval
 
   # LLM-as-a-judge evals — needs API keys, so only on the nightly schedule.
   # Configure OPENAI_API_KEY and TAVILY_API_KEY as repo secrets to enable.
@@ -24,8 +24,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
-      - run: uv sync
+      - uses: go-task/setup-task@v1
       - env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
-        run: uv run pytest -m llm
+        run: task eval:llm

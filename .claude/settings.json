@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(task --list)",
+      "Bash(task setup)",
+      "Bash(task run)",
+      "Bash(task eval)",
+      "Bash(task eval:llm)",
+      "Bash(task eval:all)",
+      "Bash(task obs:up)",
+      "Bash(task obs:down)",
+      "Bash(task obs:logs)",
+      "Bash(task dataset)",
+      "Bash(task dataset:export)",
+      "Bash(task dataset:record)"
+    ]
+  }
+}

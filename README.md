@@ -80,6 +80,24 @@ OPENAI_MODEL=gpt-4.1            # optional; a frontier model is recommended
 Get keys: [OpenAI](https://platform.openai.com/api-keys) ·
 [Tavily](https://tavily.com/) (free tier is plenty for a demo).
 
+## 🛠️ Common tasks
+
+Every workflow is wrapped in a [Taskfile](https://taskfile.dev) — run `task` to
+see them all:
+
+| Command | Does |
+|---|---|
+| `task run` | Launch the terminal app |
+| `task obs:up` / `task obs:down` | Start / stop the Grafana stack |
+| `task eval` | Deterministic eval gate (offline, fast) |
+| `task eval:llm` | LLM-as-a-judge eval gate |
+| `task dataset` | Rebuild the eval dataset from Tempo traces |
+
+> Requires [go-task](https://taskfile.dev/installation/) (`brew install go-task`).
+> Note: the `task` binary name is shared with Taskwarrior — if `task --version`
+> prints a bare number, that's Taskwarrior; install go-task to get this runner.
+> The raw `uv`/`docker`/`pytest` commands below all still work without it.
+
 ## 🕹️ Usage
 
 ```bash
