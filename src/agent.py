@@ -16,6 +16,7 @@ from langgraph.graph import END, StateGraph
 from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode
 
+from src.observability import get_tracer
 from src.reviewer import LessonReviewer
 from src.tools.lesson_file import create_lesson_file_tool
 from src.tools.websearch import create_web_search_tool
@@ -156,39 +157,53 @@ class LessonPlannerAgent:
         """
         config = {"configurable": {"thread_id": thread_id}}
         final_content = ""
+        tools_used: list = []
         try:
-            for update in self.graph.stream(
-                {"messages": [HumanMessage(content=message)]},
-                config,
-                stream_mode="updates",
-            ):
-                for node, data in update.items():
-                    for msg in data.get("messages", []) or []:
-                        if node == "agent" and getattr(msg, "tool_calls", None):
-                            for call in msg.tool_calls:
-                                yield {
-                                    "type": "tool_call",
-                                    "name": call.get("name", "tool"),
-                                    "args": call.get("args", {}) or {},
-                                }
-                        elif node == "agent" and isinstance(msg, AIMessage) and msg.content:
-                            final_content = msg.content
+            # A parent span for the whole turn: it nests the OpenLIT LLM/tool
+            # spans into one trace and records the teacher request as a short,
+            # untruncated attribute (the full prompt/completion attributes hit
+            # Tempo's size limit) so datasets can be curated straight from traces.
+            with get_tracer().start_as_current_span("lesson_turn") as turn:
+                turn.set_attribute("app.teacher_request", message[:1000])
+                turn.set_attribute("app.thread_id", thread_id)
 
-            # Master-teacher review loop: critique + refine substantial plans.
-            if self.review_enabled and self._looks_like_plan(final_content):
-                yield {"type": "reviewing"}
-                try:
-                    review = self.reviewer.review(message, final_content)
-                    yield {
-                        "type": "review",
-                        "scores": review.scores.model_dump(),
-                        "issues": review.issues,
-                        "summary": review.summary,
-                    }
-                    if review.revised_plan and review.revised_plan.strip():
-                        final_content = review.revised_plan
-                except Exception as e:  # noqa: BLE001 - review is best-effort
-                    logger.warning("Reviewer failed, keeping draft: %s", e)
+                for update in self.graph.stream(
+                    {"messages": [HumanMessage(content=message)]},
+                    config,
+                    stream_mode="updates",
+                ):
+                    for node, data in update.items():
+                        for msg in data.get("messages", []) or []:
+                            if node == "agent" and getattr(msg, "tool_calls", None):
+                                for call in msg.tool_calls:
+                                    name = call.get("name", "tool")
+                                    tools_used.append(name)
+                                    yield {
+                                        "type": "tool_call",
+                                        "name": name,
+                                        "args": call.get("args", {}) or {},
+                                    }
+                            elif node == "agent" and isinstance(msg, AIMessage) and msg.content:
+                                final_content = msg.content
+
+                # Master-teacher review loop: critique + refine substantial plans.
+                if self.review_enabled and self._looks_like_plan(final_content):
+                    yield {"type": "reviewing"}
+                    try:
+                        review = self.reviewer.review(message, final_content)
+                        yield {
+                            "type": "review",
+                            "scores": review.scores.model_dump(),
+                            "issues": review.issues,
+                            "summary": review.summary,
+                        }
+                        if review.revised_plan and review.revised_plan.strip():
+                            final_content = review.revised_plan
+                    except Exception as e:  # noqa: BLE001 - review is best-effort
+                        logger.warning("Reviewer failed, keeping draft: %s", e)
+
+                turn.set_attribute("app.tools_used", ",".join(tools_used))
+                turn.set_attribute("app.web_search_used", "web_search" in tools_used)
 
             yield {"type": "final", "content": final_content}
         except Exception as e:  # noqa: BLE001

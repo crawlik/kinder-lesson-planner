@@ -28,6 +28,10 @@ Built with a LangGraph ReAct agent + OpenAI and a terminal-first UX.
   tool calls, tokens, cost) plus the master-teacher rubric scores to a local
   **Tempo + Prometheus + Grafana** stack. Fully optional. See
   [`observability/`](observability/).
+- **🧪 Trace-seeded evals** — pytest suite whose dataset is curated from real
+  Tempo traces; plans are scored by two independent LLM judges (the domain
+  rubric + an independent safety judge). Fast offline gate + nightly judged gate.
+  See [Evaluation](#-evaluation).
 - **Robust** — env validation, graceful error panels, and safe model/temperature
   handling (auto-adapts for `gpt-5*`/`o*` models).
 
@@ -41,10 +45,13 @@ kinder-lesson-planner/
 │   ├── reviewer.py          # LLM-as-a-judge master-teacher review loop
 │   ├── observability.py     # OpenLIT / OpenTelemetry tracing wiring
 │   ├── cli.py               # colorful Rich terminal app (REPL)
+│   ├── evals.py             # eval judges (independent SafetyJudge + OpenLIT opt)
 │   └── tools/
 │       ├── websearch.py     # Tavily web search tool
 │       └── lesson_file.py   # save-lesson-plan tool + helper
 ├── observability/           # local Grafana stack (Tempo + Prometheus + Grafana)
+├── scripts/                 # export_traces.py (Tempo→dataset), record_runs.py
+├── tests/                   # eval dataset + pytest suite + recorded fixtures
 ├── pyproject.toml
 ├── .env.example
 └── README.md
@@ -158,10 +165,41 @@ TraceQL metrics. Tracing is a no-op unless enabled, so the app runs fine without
 it. Grafana Cloud works too — just set the OTLP gateway + credentials. Details in
 [`observability/README.md`](observability/README.md).
 
-> **Next up (planned):** trace-seeded evaluation — curate datasets from real
-> Tempo traces (TraceQL) and run them as pytest unit tests, scored by both the
-> `LessonReviewer` rubric and OpenLIT's built-in evals, with results pushed back
-> to Grafana to alert on regressions.
+## 🧪 Evaluation
+
+Evaluation closes the loop with observability: the dataset is **curated from real
+traces**, so the tests reflect actual usage and each case links back to the trace
+it came from.
+
+```bash
+uv run pytest -m "not llm"   # deterministic gate — offline, fast, every CI run
+uv run pytest -m llm         # LLM-as-a-judge gate — needs API keys
+uv run pytest                # everything
+```
+
+**How the dataset is built** (`tests/datasets/lessons.jsonl`):
+
+```bash
+# 1. Curate cases straight from the traces in Tempo (TraceQL under the hood)
+uv run python scripts/export_traces.py > tests/datasets/lessons.jsonl
+# 2. Record agent outputs so the deterministic suite runs offline
+uv run python scripts/record_runs.py
+```
+
+Each case carries its `source_trace_id` for observability→eval lineage, the
+observed rubric scores, and regression-style assertions (keep searching the web,
+keep the required sections, stay at or above the safety score already achieved).
+
+**Two tiers, two independent judges:**
+
+| Tier | Marker | What it checks |
+|---|---|---|
+| Deterministic | (none) | Replays recorded runs: plan structure (required sections), tool-use behavior. No LLM — safe on every push. |
+| LLM-as-a-judge | `llm` | **Judge 1 – rubric** (`LessonReviewer`): age-fit + safety clear the floor. **Judge 2 – independent `SafetyJudge`**: no hallucinated resources, toxicity, or unsafeguarded hazards. **Judge 3 (optional)**: OpenLIT platform evals when `OPENLIT_API_KEY` is set. |
+
+Judge diversity is deliberate — the independent safety judge catches failure
+modes the domain rubric can miss. CI (`.github/workflows/eval.yml`) runs the
+deterministic gate on every push and the judged gate nightly.
 
 ## 🔧 Design notes & trade-offs
 
@@ -177,6 +215,12 @@ it. Grafana Cloud works too — just set the OTLP gateway + credentials. Details
   Grafana dashboards, and built-in evals; the trade-off is that the OTel GenAI
   semantic conventions are still *experimental*. Tracing is fully optional and
   never breaks the app if the collector is down.
+- **Eval design:** the dataset is seeded from real traces (not synthetic), the
+  cheap gate is deterministic (recorded runs, no LLM) so it's a reliable PR
+  check, and the judged gate uses two *independent* judges. A known gotcha:
+  Tempo truncates long span attributes, so the full prompt isn't recoverable
+  from `gen_ai.input.messages` — hence the short `app.teacher_request`
+  attribute the export script actually reads.
 - **Review loop trade-off:** the reviewer adds a second LLM call per plan
   (~2× latency/cost on planning turns). It's best-effort — if it fails, the
   draft is kept — and can be switched off with `/review off` or
@@ -188,7 +232,7 @@ it. Grafana Cloud works too — just set the OTLP gateway + credentials. Details
 - Persist conversations and a lesson-plan library across sessions.
 - Add a curriculum-standards lookup tool (e.g. state early-learning standards).
 - Printable/PDF export and read-aloud (TTS) of songs and stories.
-- Add evals over a set of teacher prompts (incl. the reviewer's rubric scores).
+- Push eval rubric scores back to Grafana as metrics and alert on regressions.
 
 ## 📄 License
 
