@@ -274,6 +274,13 @@ verifies the final response. Add a scenario by appending to
   Grafana's MCP-observability dashboard); optionally consume external MCP tool
   servers for richer capabilities.
 
+## 🙏 Acknowledgments
+
+The idea for this project came from my wife, a kindergarten **master teacher** —
+which is also why the review loop plays the role of a "master teacher." Thank you
+for the inspiration and the real-world expertise on what actually keeps 4–6 year
+olds safe, engaged, and learning.
+
 ## 📄 License
 
 MIT — see [LICENSE](LICENSE).
