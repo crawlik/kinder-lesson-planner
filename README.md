@@ -71,7 +71,7 @@ Requires Python 3.10+ and [uv](https://github.com/astral-sh/uv) (or plain pip).
 
 ```bash
 # 1. Install dependencies
-uv sync                         # or: pip install -e .
+task setup                      # wraps `uv sync` (or: pip install -e .)
 
 # 2. Configure keys
 cp .env.example .env            # then edit .env
