@@ -20,9 +20,14 @@ tasks:
     sources: ["pyproject.toml", "uv.lock"]
 
   run:
-    desc: Launch the colorful terminal app
+    desc: Launch the colorful terminal app (auto-starts the observability stack)
     deps: [setup]
-    cmds: [uv run python main.py]
+    cmds:
+      # Bring up Tempo/Prometheus/Grafana so traces flow; non-fatal if Docker is
+      # down — the app still runs and tracing simply no-ops.
+      - cmd: "{{.COMPOSE}} up -d"
+        ignore_error: true
+      - uv run python main.py
     interactive: true
 
   demo:
