@@ -9,6 +9,7 @@ Built with a LangGraph ReAct agent + OpenAI and a terminal-first UX.
 
 <p align="center">
   <img src="docs/demo.gif" alt="Kinder Lesson Planner — terminal demo" width="820">
+  <br><sub><i>A real, unedited run: live web search → plan → master-teacher review (trailing wait trimmed).</i></sub>
 </p>
 
 ## ✨ Features

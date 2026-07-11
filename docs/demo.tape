@@ -1,17 +1,23 @@
-# VHS tape for the README demo GIF — https://github.com/charmbracelet/vhs
-# Regenerate: task demo  (or: vhs docs/demo.tape)
+# VHS tape — LIVE capture of the real app (real LLM calls, real web search).
+# Needs .env with OPENAI_API_KEY + TAVILY_API_KEY. Regenerate: task demo
+# The raw capture runs in real time (~35s of actual work); trim trailing static
+# afterwards, e.g.:  ffmpeg -y -t 36 -i docs/demo.gif -vf fps=12 docs/demo.gif
 Output docs/demo.gif
 
 Set Shell "bash"
 Set FontSize 15
-Set Width 1080
-Set Height 860
+Set Width 1100
+Set Height 900
 Set Padding 18
 Set Theme "Dracula"
+Set Framerate 12
 
 Hide
-Type ".venv/bin/python scripts/demo.py"
+Type "clear && TRACING_ENABLED=false .venv/bin/python main.py"
 Enter
-Sleep 900ms
+Sleep 5s
 Show
-Sleep 10s
+Type "A 15-minute lesson on the days of the week, and find a real picture book"
+Sleep 800ms
+Enter
+Sleep 80s

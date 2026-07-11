@@ -26,7 +26,7 @@ tasks:
     interactive: true
 
   demo:
-    desc: Regenerate the README demo GIF (needs vhs + ttyd)
+    desc: Regenerate the README demo GIF — live capture (needs vhs, ttyd, and .env keys)
     deps: [setup]
     cmds: [vhs docs/demo.tape]
 
