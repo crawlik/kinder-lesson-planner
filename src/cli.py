@@ -109,7 +109,7 @@ def _render_review(review: dict) -> None:
     console.print(
         Panel(
             body,
-            title="[bold magenta]🧑‍🏫 Master-Teacher Review[/bold magenta]",
+            title="[bold magenta]👩‍🏫 Master-Teacher Review[/bold magenta]",
             border_style="magenta",
             padding=(1, 2),
         )
@@ -134,8 +134,8 @@ def _run_turn(agent, message: str, thread_id: str) -> str:
                     line += f" [dim]· {detail}[/dim]"
                 console.print(line)
             elif etype == "reviewing":
-                status.update("[bold magenta]🧑‍🏫 Master teacher reviewing the plan…[/bold magenta]")
-                console.print("[magenta]🧑‍🏫 master-teacher review[/magenta]")
+                status.update("[bold magenta]👩‍🏫 Master teacher reviewing the plan…[/bold magenta]")
+                console.print("[magenta]👩‍🏫 master-teacher review[/magenta]")
             elif etype == "review":
                 review = event
             elif etype == "final":
@@ -237,7 +237,7 @@ def main() -> None:
             else:
                 agent.review_enabled = not agent.review_enabled
             state = "[green]on[/green]" if agent.review_enabled else "[yellow]off[/yellow]"
-            console.print(f"🧑‍🏫 Master-teacher review is now {state}.")
+            console.print(f"👩‍🏫 Master-teacher review is now {state}.")
             continue
         if user_input.startswith("/"):
             console.print(f"[yellow]Unknown command: {user_input}. Try /help.[/yellow]")

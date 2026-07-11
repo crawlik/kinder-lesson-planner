@@ -9,7 +9,7 @@ Built with a LangGraph ReAct agent + OpenAI and a terminal-first UX.
 
 ## ✨ Features
 
-- **🧑‍🏫 LLM-as-a-judge review loop** — after drafting, a second LLM acts as a
+- **👩‍🏫 LLM-as-a-judge review loop** — after drafting, a second LLM acts as a
   judge playing the role of a senior master teacher: it scores every plan on a
   rubric (age-fit, **safety**, engagement, clarity), flags concrete issues, and
   auto-refines the plan before you see it. A small *generate → critique → refine*
@@ -123,7 +123,7 @@ teacher › /save Butterfly Life Cycle
    └─────────┘   └────────────┘
                │ draft
         ┌──────▼───────────┐
-        │ 🧑‍🏫 Master-Teacher │  rubric scores + auto-refine
+        │ 👩‍🏫 Master-Teacher │  rubric scores + auto-refine
         │  Reviewer         │  (src/reviewer.py)
         └──────┬───────────┘
                ▼ polished plan
