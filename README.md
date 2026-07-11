@@ -52,6 +52,9 @@ kinder-lesson-planner/
 ├── observability/           # local Grafana stack (Tempo + Prometheus + Grafana)
 ├── scripts/                 # export_traces.py (Tempo→dataset), record_runs.py
 ├── tests/                   # eval dataset + pytest suite + recorded fixtures
+├── Taskfile.yml             # task runner — the entry point for every workflow
+├── CLAUDE.md                # onboarding for Claude Code + humans (start here)
+├── .claude/                 # settings (permissions) + custom slash commands
 ├── pyproject.toml
 ├── .env.example
 └── README.md
