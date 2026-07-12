@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>🍎 Kinder Lesson Planner</title>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    :root { color-scheme: light dark; }
+    body { font-family: ui-sans-serif, system-ui, sans-serif; max-width: 760px;
+           margin: 2rem auto; padding: 0 1rem; line-height: 1.5; }
+    h1 { font-size: 1.4rem; }
+    #log { margin-top: 1rem; }
+    .msg { padding: .6rem .8rem; border-radius: .6rem; margin: .5rem 0; white-space: pre-wrap; }
+    .user { background: #2563eb14; border: 1px solid #2563eb44; }
+    .tool { color: #0891b2; font-size: .9rem; }
+    .review { background: #a21caf14; border: 1px solid #a21caf44; white-space: normal; }
+    .review .rt { font-weight: 600; margin-bottom: .5rem; }
+    .rtbl { border-collapse: collapse; }
+    .rtbl td { padding: .12rem .7rem .12rem 0; vertical-align: middle; }
+    .rk { color: #6b7280; }
+    .rv { font-family: ui-monospace, monospace; letter-spacing: 2px; }
+    .rn { opacity: .5; font-size: .8rem; letter-spacing: normal; margin-left: .3rem; }
+    .rsum { margin-top: .6rem; font-style: italic; opacity: .8; font-size: .92rem; }
+    .plan { background: #16a34a10; border: 1px solid #16a34a44; white-space: normal; }
+    .plan h1 { font-size: 1.25rem; } .plan h2 { font-size: 1.05rem; margin: .8rem 0 .2rem; }
+    .plan h3 { font-size: .98rem; } .plan ul { margin: .3rem 0; padding-left: 1.2rem; }
+    .plan p { margin: .4rem 0; }
+    .err { background: #dc262614; border: 1px solid #dc262644; }
+    form { display: flex; gap: .5rem; position: sticky; top: 0; padding: .5rem 0; background: Canvas; }
+    input { flex: 1; padding: .6rem; border-radius: .5rem; border: 1px solid #8888; }
+    button { padding: .6rem 1rem; border-radius: .5rem; border: 0; background: #2563eb; color: #fff; cursor: pointer; }
+    button:disabled { opacity: .5; cursor: default; }
+    .spinner { color: #a16207; font-style: italic; }
+  </style>
+</head>
+<body>
+  <h1>🍎 Kinder Lesson Planner</h1>
+  <form id="form">
+    <input id="input" placeholder="e.g. A 15-minute lesson on the butterfly life cycle" autofocus />
+    <button id="send" type="submit">Send</button>
+  </form>
+  <div id="log"></div>
+
+  <script>
+    const THREAD = crypto.randomUUID();
+    const log = document.getElementById('log');
+    const form = document.getElementById('form');
+    const input = document.getElementById('input');
+    const sendBtn = document.getElementById('send');
+
+    const add = (cls, text) => {
+      const el = document.createElement('div');
+      el.className = 'msg ' + cls;
+      el.textContent = text;
+      log.appendChild(el);
+      el.scrollIntoView({ block: 'end' });
+      return el;
+    };
+
+    const starHtml = (v) => {
+      const s = Math.round(v || 0);
+      const color = s >= 4 ? '#16a34a' : s === 3 ? '#a16207' : '#dc2626';
+      return `<span class="rv" style="color:${color}">${'★'.repeat(s)}${'☆'.repeat(5 - s)}</span>` +
+             `<span class="rn">${s}/5</span>`;
+    };
+
+    function renderReview(ev) {
+      const s = ev.scores || {};
+      const rows = [
+        ['Safety', s.safety],
+        ['Age fit', s.age_appropriateness],
+        ['Engagement', s.engagement],
+        ['Clarity', s.clarity],
+      ].map(([label, val]) => `<tr><td class="rk">${label}</td><td>${starHtml(val)}</td></tr>`).join('');
+      const el = document.createElement('div');
+      el.className = 'msg review';
+      el.innerHTML = `<div class="rt">👩‍🏫 Master-Teacher Review</div>` +
+        `<table class="rtbl">${rows}</table>` +
+        (ev.summary ? `<div class="rsum">✎ ${ev.summary}</div>` : '');
+      log.appendChild(el);
+      el.scrollIntoView({ block: 'end' });
+    }
+
+    function handle(ev, spinner) {
+      if (ev.type === 'tool_call') {
+        const q = (ev.args && (ev.args.query || ev.args.title)) || '';
+        add('tool', '🔍 ' + ev.name + (q ? ' · ' + q : ''));
+      } else if (ev.type === 'reviewing') {
+        spinner.textContent = '👩‍🏫 master teacher reviewing…';
+      } else if (ev.type === 'review') {
+        renderReview(ev);
+      } else if (ev.type === 'final') {
+        const el = document.createElement('div');
+        el.className = 'msg plan';
+        el.innerHTML = window.marked ? marked.parse(ev.content) : ev.content;
+        log.appendChild(el);
+        el.scrollIntoView({ block: 'end' });
+      } else if (ev.type === 'error') {
+        add('err', '⚠ ' + ev.error);
+      }
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const message = input.value.trim();
+      if (!message) return;
+      add('user', 'teacher › ' + message);
+      input.value = '';
+      sendBtn.disabled = true;
+      const spinner = add('spinner', '⏳ thinking…');
+
+      try {
+        const res = await fetch('/chat', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ message, thread_id: THREAD }),
+        });
+        const reader = res.body.getReader();
+        const dec = new TextDecoder();
+        let buf = '';
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buf += dec.decode(value, { stream: true });
+          const parts = buf.split('\n\n');
+          buf = parts.pop();
+          for (const part of parts) {
+            const line = part.replace(/^data: /, '').trim();
+            if (!line) continue;
+            const ev = JSON.parse(line);
+            if (ev.type === 'done') continue;
+            handle(ev, spinner);
+          }
+        }
+      } catch (err) {
+        add('err', '⚠ ' + err.message);
+      } finally {
+        spinner.remove();
+        sendBtn.disabled = false;
+        input.focus();
+      }
+    });
+  </script>
+</body>
+</html>

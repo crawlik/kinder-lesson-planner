@@ -14,6 +14,13 @@ dependencies = [
     "openlit>=1.43.0",
 ]
 
+[project.optional-dependencies]
+# Web backend (FastAPI + SSE). Install with: uv sync --extra web
+web = [
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.29",
+]
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"

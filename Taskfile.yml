@@ -30,6 +30,22 @@ tasks:
       - uv run python main.py
     interactive: true
 
+  web:
+    desc: Run the web backend (FastAPI + SSE) locally at :8000
+    cmds:
+      - uv sync --extra web
+      - cmd: "{{.COMPOSE}} up -d"
+        ignore_error: true
+      - .venv/bin/python -m uvicorn web.app:app --host 0.0.0.0 --port 8000
+    interactive: true
+
+  web:docker:
+    desc: Build + run the web backend in Docker at :8000 (keys from .env)
+    cmds:
+      - docker build -f web/Dockerfile -t kinder-lesson-planner-web .
+      - docker run --rm -p 8000:8000 --env-file .env -e TRACING_ENABLED=false --name kinder-web kinder-lesson-planner-web
+    interactive: true
+
   demo:
     desc: Regenerate the README demo GIF — live capture (needs vhs, ttyd, and .env keys)
     deps: [setup]

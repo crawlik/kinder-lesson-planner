@@ -54,6 +54,7 @@ kinder-lesson-planner/
 │   └── tools/
 │       ├── websearch.py     # Tavily web search tool
 │       └── lesson_file.py   # save-lesson-plan tool + helper
+├── web/                     # FastAPI + SSE backend + Dockerfile (optional web UI)
 ├── observability/           # local Grafana stack (Tempo + Prometheus + Grafana)
 ├── scripts/                 # export_traces.py (Tempo→dataset), record_runs.py
 ├── tests/                   # eval dataset + pytest suite + recorded fixtures
@@ -96,6 +97,7 @@ see them all:
 | Command | Does |
 |---|---|
 | `task run` | Launch the terminal app |
+| `task web` / `task web:docker` | Run the web backend (local / in Docker) |
 | `task obs:up` / `task obs:down` | Start / stop the Grafana stack |
 | `task eval` | Deterministic eval gate (offline, fast) |
 | `task eval:llm` | LLM-as-a-judge eval gate |
@@ -127,6 +129,22 @@ teacher › /save Butterfly Life Cycle
 | `/review [on\|off]` | Toggle the master-teacher review loop |
 | `/new` | Start a fresh conversation (clears memory) |
 | `/quit` | Exit |
+
+## 🌐 Web backend (optional)
+
+Besides the terminal UI, a small **FastAPI + SSE** backend (`web/`) streams the
+same agent over HTTP — the enabler for any web front end (React/Lovable, HTMX, …)
+without touching the terminal app. It reuses `agent.stream()` and emits the
+`tool_call` / `review` / `final` events as Server-Sent Events.
+
+```bash
+task web            # local at http://localhost:8000  (uv sync --extra web)
+task web:docker     # build + run the Dockerfile, keys from .env
+```
+
+`POST /chat {message, thread_id}` → SSE stream · `GET /health`. A minimal test
+page is served at `/`. The `Dockerfile` is deploy-ready for Cloud Run / Fly / HF
+Spaces (keys injected at runtime, not baked in).
 
 ## 🧠 How it works
 

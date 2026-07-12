@@ -9,7 +9,6 @@ build/
 *.log
 # Generated lesson plans (teacher output)
 lesson_plans/
-uv.lock
 
 # go-task checksum cache
 .task/

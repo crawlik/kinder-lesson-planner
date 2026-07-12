@@ -1,0 +1,16 @@
+# Keep the build context small — the web image only needs src/ + web/ + manifests.
+.venv
+.git
+.task
+__pycache__
+*.pyc
+observability
+tests
+docs
+lesson_plans
+.env
+*.log
+DEMO_PLAN.md
+Screenshot*
+.claude
+uv.lock.bak
